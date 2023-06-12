@@ -91,7 +91,9 @@ function onResumeScan() {
 
 <template>
     <div id="main" :class="main_background">
-        <div id="preview"></div>
+        <div id="first">
+            <div id="preview"></div>
+        </div>
 
         <div id="second">
             <ErrorInfo v-if="status > 200"

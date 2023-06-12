@@ -36,6 +36,5 @@ const props = defineProps(['text', 'label'])
     text-transform: uppercase;
     font-size: 32pt;
     font-weight: bold;
-    min-height: 5rem;
 }
 </style>
