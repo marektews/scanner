@@ -19,7 +19,17 @@ onBeforeUnmount(() => {
 })
 watch(decodedText, (nv) => {
     if(nv.length === 0) return
-    fetch(`/api/srp/check?data=${decodedText.value}`)
+    if(nv.includes('pk-')) {
+        check(`/api/pk/check?data=${nv}`)
+
+    }
+    else {
+        check(`/api/srp/check?data=${nv}`)
+    }
+})
+
+function check(url) {
+    fetch(url)
     .then(response => {
         status.value = response.status
         if(response.status === 200) {
@@ -43,7 +53,7 @@ watch(decodedText, (nv) => {
         return response.text()
     })
     .then(d => errorInfo.value = d)
-})
+}
 
 const main_background = computed(() => {
     if(status.value === 200) return "bg-success"
@@ -51,15 +61,30 @@ const main_background = computed(() => {
     return ""
 })
 
-const pass_nr = computed(() => decodedText.value.split('-')[0] || "")
+const pass_nr = computed(() => {
+    if(decodedText.value.includes('pk-'))
+        return decodedText.value.split('-')[1] || ""
+    else
+        return decodedText.value.split('-')[0] || ""
+})
 const regnum = computed(() => {
     let d = new Date()
-    switch(d.getDay()) {
-        case 5: return decodedText.value.split('-')[1]
-        case 6: return decodedText.value.split('-')[2]
-        case 0: return decodedText.value.split('-')[3]
+    if(decodedText.value.includes('pk-')) {
+        switch(d.getDay()) {
+            case 5: return decodedText.value.split('-')[2]
+            case 6: return decodedText.value.split('-')[3]
+            case 0: return decodedText.value.split('-')[4]
+        }
+        return decodedText.value.split('-')[2] || ""
     }
-    return decodedText.value.split('-')[1] || ""
+    else {
+        switch(d.getDay()) {
+            case 5: return decodedText.value.split('-')[1]
+            case 6: return decodedText.value.split('-')[2]
+            case 0: return decodedText.value.split('-')[3]
+        }
+        return decodedText.value.split('-')[1] || ""
+    }
 })
 
 function startScanner() {
