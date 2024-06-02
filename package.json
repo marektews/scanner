@@ -2,6 +2,7 @@
   "name": "scanner",
   "version": "0.2",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -9,10 +10,10 @@
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
-    "vue": "^3.3.2"
+    "vue": "^3.4.27"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.2.3",
-    "vite": "^4.3.5"
+    "@vitejs/plugin-vue": "^4.6.2",
+    "vite": "^4.5.3"
   }
 }
