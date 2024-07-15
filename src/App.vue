@@ -1,8 +1,11 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue"
-import {Html5Qrcode} from "html5-qrcode"
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import { faQrcode } from "@fortawesome/free-solid-svg-icons"
+import { Html5Qrcode } from "html5-qrcode"
 import ErrorInfo from './components/ErrorInfo.vue'
-import TextPanel from './components/TextPanel.vue'
+import SuccessInfo from './components/SuccessInfo.vue'
+import StartInfo from './components/StartInfo.vue'
 
 const scanner = ref(undefined)
 const decodedText = ref('')
@@ -11,7 +14,15 @@ const errorInfo = ref('')
 const counter = ref(3)
 const timer = ref(undefined)
 
-onMounted(() => startScanner())
+onMounted(() => {
+    screen.orientation.onchange = () => {
+        stopScanner()
+        status.value = undefined
+        decodedText.value = ''
+        nextTick(startScanner)
+    }
+    startScanner()
+})
 onBeforeUnmount(() => {
     stopScanner()
     clearInterval(timer.value)
@@ -55,12 +66,6 @@ function check(url) {
     .then(d => errorInfo.value = d)
 }
 
-const main_background = computed(() => {
-    if(status.value === 200) return "bg-success"
-    if(status.value !== undefined) return "bg-danger"
-    return ""
-})
-
 const pass_nr = computed(() => {
     if(decodedText.value.includes('pk-'))
         return decodedText.value.split('-')[1] || ""
@@ -91,7 +96,7 @@ function startScanner() {
     scanner.value = new Html5Qrcode("preview")
     scanner.value.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 200 },
+        { fps: 10 },
         (text, result) => {
             console.log('Detected code:', text, result)
             decodedText.value = text
@@ -109,13 +114,13 @@ function stopScanner() {
 
 function onResumeScan() {
     status.value = undefined
-    decodedText.value = ''    
+    decodedText.value = ''
     scanner.value?.resume() 
 }
 </script>
 
 <template>
-    <div id="main" :class="main_background">
+    <main>
         <div id="first">
             <div id="preview"></div>
         </div>
@@ -125,35 +130,36 @@ function onResumeScan() {
                 label="Opis przypadku"
                 :text="errorInfo"
             />
-            <TextPanel 
-                label="Numer rejestracyjny pojazdu"
-                :text="regnum" 
-            />
-            <TextPanel 
-                label="Numer identyfikatora parkingowego"
-                :text="pass_nr" 
-            />
+            <SuccessInfo v-else-if="status === 200" />
+            <StartInfo v-else />
+
+            <div>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="Numer identyfikatora">
+                    <input type="text" class="form-control" value="Numer rejestracyjny">
+                </div>
+                <div class="input-group">
+                    <input type="text" class="form-control layout" disabled readonly v-model="pass_nr" >
+                    <input type="text" class="form-control layout" disabled readonly v-model="regnum" >
+                </div>
+            </div>
 
             <div class="btns-layout">
-                <button v-if="scanner?.getState() === 3"
+                <button 
+                    :disabled="scanner?.getState() !== 3"
                     class="btn btn-success"
                     @click="onResumeScan"
                 >
-                    <div><i class="fa-solid fa-qrcode fa-3x"/></div>
+                    <FontAwesomeIcon :icon="faQrcode" />
                     <div>Skanuj ponownie</div>
                     <small v-if="status===200">Autostart za {{ counter }} sekund</small>
                 </button>
             </div>
         </div>
-    </div>
+    </main>
 </template>
 
 <style scoped>
-#id {
-    width: 300px;
-    height: 300px;
-}
-
 .decoded-text {
     width: 100%;
     text-align: center;
@@ -165,27 +171,42 @@ function onResumeScan() {
     display: flex;
     flex-direction: row;
     justify-content: center;
+    align-items: center;
     gap: 4pt;
 }
 
+#preview {
+    max-width: 100%;
+    max-height: 100%;
+}
+
 #second {
-    padding: 9pt;
+    padding: 4pt;
     display: flex;
     flex-direction: column;
     gap: 9pt;
-    justify-items: stretch;
 }
 
-#main {
-    min-height: 100vh;
+input.layout {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+
+main {
+    min-width: 100vw;
+    max-width: 100vw;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 0;
+    grid-template-rows: 1fr 1fr;
+    gap: 1pt;
 }
 
 @media screen and (orientation: landscape) {
-    #main {
+    main {
+        min-width: 100vw;
+        max-width: 100vw;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr;
     }
