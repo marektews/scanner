@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue"
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
-import { faQrcode } from "@fortawesome/free-solid-svg-icons"
+import { faQrcode, faRightFromBracket } from "@fortawesome/free-solid-svg-icons"
 import { Html5Qrcode } from "html5-qrcode"
 import ErrorInfo from './components/ErrorInfo.vue'
 import SuccessInfo from './components/SuccessInfo.vue'
@@ -39,6 +39,18 @@ watch(decodedText, (nv) => {
     }
 })
 
+function startAutostart() {
+    counter.value = 3
+    timer.value = setInterval(() => {
+        counter.value -= 1
+        if(counter.value === 0) {
+            clearInterval(timer.value)
+            timer.value = undefined
+            onResumeScan()
+        }
+    }, 1000)
+}
+
 function check(url) {
     fetch(url)
     .then(response => {
@@ -46,16 +58,7 @@ function check(url) {
         if(response.status === 200) {
             // OK
             console.log('OK:', decodedText)
-
-            counter.value = 3
-            timer.value = setInterval(() => {
-                counter.value -= 1
-                if(counter.value === 0) {
-                    clearInterval(timer.value)
-                    timer.value = undefined
-                    onResumeScan()
-                }                
-            }, 1000)
+            startAutostart()
         }
         else {
             // błąd
@@ -64,6 +67,29 @@ function check(url) {
         return response.text()
     })
     .then(d => errorInfo.value = d)
+}
+
+// "Wyjazd" - kasuje znacznik użycia identyfikatora parkingowego (zwalnia go),
+// dostępny gdy skan sygnalizuje ponowne użycie (status 403).
+// Endpoint wybierany wg typu kodu: pk- (parking księżycowy) lub srp (niepełnosprawni).
+function wyjazd() {
+    const url = decodedText.value.includes('pk-')
+        ? `/api/pk/free?data=${decodedText.value}`
+        : `/api/srp/free?data=${decodedText.value}`
+    fetch(url)
+    .then(response => {
+        if(response.status === 200) {
+            console.log('Wyjazd OK:', decodedText.value)
+            errorInfo.value = ''
+            status.value = 200
+            startAutostart()
+        }
+        else {
+            console.error('Wyjazd error:', decodedText.value, 'status:', response.status)
+            status.value = response.status
+            return response.text().then(d => errorInfo.value = d)
+        }
+    })
 }
 
 const pass_nr = computed(() => {
@@ -153,6 +179,14 @@ function onResumeScan() {
                     <FontAwesomeIcon :icon="faQrcode" />
                     <div>Skanuj ponownie</div>
                     <small v-if="status===200">Autostart za {{ counter }} sekund</small>
+                </button>
+                <button
+                    v-if="status === 403"
+                    class="btn btn-warning"
+                    @click="wyjazd"
+                >
+                    <FontAwesomeIcon :icon="faRightFromBracket" />
+                    <div>Wyjazd</div>
                 </button>
             </div>
         </div>
